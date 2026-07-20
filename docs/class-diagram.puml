@@ -1,0 +1,74 @@
+@startuml
+' ============================================
+' FINANCINHAS - DIAGRAMA DE CLASSES
+' ============================================
+skinparam classAttributeIconSize 0
+skinparam backgroundColor #FEFEFE
+skinparam class {
+ BackgroundColor #F8F9FA
+ BorderColor #2C3E50
+ ArrowColor #2C3E50
+}
+
+' ========== CLASSE USUARIO ==========
+class Usuario {
+ - id: int
+ - nome: string
+ - email: string
+ - senha: string
+ - data_cadastro: datetime
+ --
+ + login(email: string, senha: string): bool
+ + cadastrar(dados: array): bool
+ + logout(): void
+ + getContas(): array
+ + getMovimentacoes(): array
+}
+
+' ========== CLASSE CONTA ==========
+class Conta {
+ - id: int
+ - usuario_id: int
+ - nome: string
+ - tipo: string
+ - saldo: float
+ - data_criacao: datetime
+ --
+ + getSaldo(): float
+ + atualizarSaldo(valor: float): bool
+ + getMovimentacoes(): array
+}
+
+' ========== CLASSE MOVIMENTACAO ==========
+class Movimentacao {
+ - id: int
+ - usuario_id: int
+ - conta_id: int
+ - descricao: string
+ - valor: float
+ - tipo: string
+ - data_movimento: date
+ - data_criacao: datetime
+ --
+ + registrar(): bool
+ + excluir(): bool
+}
+
+' ========== CLASSE CATEGORIA ==========
+class Categoria {
+ - id: int
+ - usuario_id: int
+ - nome: string
+ - tipo: string
+ --
+ + getMovimentacoes(): array
+}
+
+' ========== RELACIONAMENTOS ==========
+Usuario "1" --> "*" Conta : possui
+Usuario "1" --> "*" Movimentacao : possui
+Usuario "1" --> "*" Categoria : possui
+
+Conta "1" --> "*" Movimentacao : possui
+
+@enduml

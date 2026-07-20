@@ -1,0 +1,49 @@
+@startuml
+' ============================================
+' FINANCINHAS - DIAGRAMA DE CASOS DE USO
+' ============================================
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor "Usuário" as user
+
+rectangle "Financinhas" {
+ 
+ ' ========== MÓDULO DE AUTENTICAÇÃO ==========
+ usecase "Fazer Login" as UC01
+ usecase "Fazer Cadastro" as UC02
+ usecase "Fazer Logout" as UC03
+ 
+ ' ========== MÓDULO DE CONTAS ==========
+ usecase "Cadastrar Conta" as UC04
+ usecase "Excluir Conta" as UC05
+ usecase "Visualizar Contas" as UC06
+ usecase "Visualizar Saldo Total" as UC07
+ 
+ ' ========== MÓDULO DE MOVIMENTAÇÕES ==========
+ usecase "Registrar Entrada" as UC08
+ usecase "Registrar Saída" as UC09
+ usecase "Excluir Movimentação" as UC10
+ usecase "Listar Movimentações" as UC11
+ 
+ ' ========== RELACIONAMENTOS ==========
+ user --> UC01
+ user --> UC02
+ user --> UC03
+ user --> UC04
+ user --> UC05
+ user --> UC06
+ user --> UC07
+ user --> UC08
+ user --> UC09
+ user --> UC10
+ user --> UC11
+ 
+ ' ========== INCLUDES ==========
+ UC04 ..> UC07 : <<include>>
+ UC06 ..> UC07 : <<include>>
+ UC08 ..> UC07 : <<include>>
+ UC09 ..> UC07 : <<include>>
+}
+@enduml

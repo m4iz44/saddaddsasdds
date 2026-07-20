@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8080"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=usuariocomum
+      - POSTGRES_PASSWORD=usuariophp123!
+      - POSTGRES_DB=financinhas
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./sql/banco.sql:/docker-entrypoint-initdb.d/banco.sql
+    restart: unless-stopped
