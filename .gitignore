@@ -1,0 +1,16 @@
+# Variáveis de ambiente com dados locais/sensíveis
+.env
+
+# Configurações de IDEs e Editores
+.idea/
+.vscode/
+*.swp
+*.tmp
+
+# Arquivos temporários e scratch
+scratch/
+
+# Logs e arquivos de sistema
+*.log
+.DS_Store
+Thumbs.db

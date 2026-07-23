@@ -8,15 +8,13 @@ if (estaLogado()) {
     exit;
 }
 
-$erro = '';
-$sucesso = $_GET['sucesso'] ?? '';
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'] ?? '';
     $senha = $_POST['senha'] ?? '';
 
     if (empty($email) || empty($senha)) {
-        $erro = "Preencha todos os campos.";
+        header('Location: login.php?erro=' . urlencode('Preencha todos os campos.'));
+        exit;
     } else {
         $query = "SELECT id, nome, senha FROM usuarios WHERE email = $1";
         $result = pg_query_params($conexao, $query, array($email));
@@ -29,10 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: index.php');
                 exit;
             } else {
-                $erro = "E-mail ou senha incorretos.";
+                header('Location: login.php?erro=' . urlencode('E-mail ou senha incorretos.'));
+                exit;
             }
         } else {
-            $erro = "E-mail ou senha incorretos.";
+            header('Location: login.php?erro=' . urlencode('E-mail ou senha incorretos.'));
+            exit;
         }
     }
 }
@@ -46,17 +46,6 @@ require_once '../src/header.php';
     </div>
 
     <h2 style="font-size: 20px; color: var(--text-muted); margin-bottom: 30px;">Bem-vinda de volta!</h2>
-
-    <?php if ($erro): ?>
-        <div style="background: var(--danger); color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; font-weight: bold;">
-            <?php echo $erro; ?>
-        </div>
-    <?php endif; ?>
-    <?php if ($sucesso): ?>
-        <div style="background: var(--success); color: #2E5C2D; padding: 15px; border-radius: 12px; margin-bottom: 20px; font-weight: bold;">
-            Cadastro realizado com sucesso! Faça login.
-        </div>
-    <?php endif; ?>
 
     <form method="POST" action="login.php">
         <div class="form-group">

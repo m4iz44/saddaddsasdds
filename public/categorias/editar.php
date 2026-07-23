@@ -5,7 +5,6 @@ require_once '../../src/funcoes.php';
 
 exigeLogin();
 $usuario_id = $_SESSION['usuario_id'];
-$erro = '';
 
 if (!isset($_GET['id']) && !isset($_POST['id'])) {
     header('Location: /categorias/listar.php');
@@ -29,16 +28,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tipo = $_POST['tipo'] ?? '';
 
     if (empty($nome) || empty($tipo)) {
-        $erro = "Preencha todos os campos.";
+        header('Location: /categorias/editar.php?id=' . $cat_id . '&erro=' . urlencode('Preencha todos os campos.'));
+        exit;
     } else {
         $query = "UPDATE categorias SET nome = $1, tipo = $2 WHERE id = $3 AND usuario_id = $4";
         $result = pg_query_params($conexao, $query, array($nome, $tipo, $cat_id, $usuario_id));
 
         if ($result) {
-            header('Location: /categorias/listar.php?sucesso=1');
+            header('Location: /categorias/listar.php?sucesso=' . urlencode('Categoria atualizada com sucesso!'));
             exit;
         } else {
-            $erro = "Erro ao atualizar categoria.";
+            header('Location: /categorias/editar.php?id=' . $cat_id . '&erro=' . urlencode('Erro ao atualizar categoria.'));
+            exit;
         }
     }
 }
@@ -46,28 +47,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 require_once '../../src/header.php';
 ?>
 
-<main class="conteudo">
-    <h2>Editar Categoria</h2>
-    
-    <?php if (!empty($erro)): ?>
-        <div class="erro"><?php echo $erro; ?></div>
-    <?php endif; ?>
+<div class="top-header">
+    <h1>
+        <svg viewBox="0 0 24 24"><path d="M12 2l-5.5 9h11L12 2zm0 3.84L13.93 9h-3.87L12 5.84zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5s2.01 4.5 4.5 4.5 4.5-2.01 4.5-4.5-2.01-4.5-4.5-4.5zm0 7c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5zM3 21.5h8v-8H3v8zm2-6h4v4H5v-4z"/></svg>
+        Editar Categoria
+    </h1>
+</div>
 
-    <form method="POST" action="/categorias/editar.php">
-        <input type="hidden" name="id" value="<?php echo htmlspecialchars($cat_id); ?>">
-        
-        <label for="nome">Nome da Categoria</label>
-        <input type="text" id="nome" name="nome" value="<?php echo htmlspecialchars($cat_atual['nome']); ?>" required>
+<div class="content-area">
+    <div class="card">
+        <form method="POST" action="/categorias/editar.php">
+            <input type="hidden" name="id" value="<?php echo htmlspecialchars($cat_id); ?>">
 
-        <label for="tipo">Tipo</label>
-        <select id="tipo" name="tipo" required>
-            <option value="entrada" <?php echo $cat_atual['tipo'] == 'entrada' ? 'selected' : ''; ?>>Receita / Entrada</option>
-            <option value="saida" <?php echo $cat_atual['tipo'] == 'saida' ? 'selected' : ''; ?>>Despesa / Saída</option>
-        </select>
+            <div class="form-group">
+                <label for="nome">Nome da Categoria</label>
+                <input type="text" id="nome" name="nome" class="form-control" value="<?php echo htmlspecialchars($cat_atual['nome']); ?>" required>
+            </div>
 
-        <input type="submit" value="Atualizar Categoria">
-        <a href="/categorias/listar.php" class="btn" style="background: #95a5a6;">Cancelar</a>
-    </form>
-</main>
+            <div class="form-group">
+                <label for="tipo">Tipo</label>
+                <select id="tipo" name="tipo" class="form-control" required>
+                    <option value="entrada" <?php echo $cat_atual['tipo'] == 'entrada' ? 'selected' : ''; ?>>Receita / Entrada</option>
+                    <option value="saida" <?php echo $cat_atual['tipo'] == 'saida' ? 'selected' : ''; ?>>Despesa / Saída</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="submit" class="btn" style="flex: 1;">Atualizar Categoria</button>
+                <a href="/categorias/listar.php" class="btn btn-secondary" style="flex: 1; text-align: center;">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
 
 <?php require_once '../../src/footer.php'; ?>

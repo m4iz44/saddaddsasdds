@@ -24,15 +24,24 @@ $r_mov = pg_query_params($conexao, $q_mov, array($usuario_id, $primeiro_dia, $ul
 $movimentacoes = $r_mov ? pg_fetch_all($r_mov) : [];
 
 // Busca categorias para os selects
-$q_cat_ent = "SELECT * FROM categorias WHERE usuario_id = $1 AND tipo = 'entrada'";
-$q_cat_sai = "SELECT * FROM categorias WHERE usuario_id = $1 AND tipo = 'saida'";
-$cat_entradas = pg_fetch_all(pg_query_params($conexao, $q_cat_ent, array($usuario_id))) ?: [];
-$cat_saidas = pg_fetch_all(pg_query_params($conexao, $q_cat_sai, array($usuario_id))) ?: [];
+$cat_entradas = getCategoriasPorTipo($usuario_id, 'entrada', $conexao);
+$cat_saidas = getCategoriasPorTipo($usuario_id, 'saida', $conexao);
 
 // Busca contas
 $contas = getContas($usuario_id, $conexao);
 
+// Mês anterior e próximo para navegação
+$mes_ant = $mes_atual - 1;
+$ano_ant = $ano_atual;
+if ($mes_ant < 1) { $mes_ant = 12; $ano_ant--; }
+
+$mes_prox = $mes_atual + 1;
+$ano_prox = $ano_atual;
+if ($mes_prox > 12) { $mes_prox = 1; $ano_prox++; }
+
 $meses = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+$dia_padrao = sprintf('%04d-%02d-%02d', $ano_atual, $mes_atual, min((int)date('d'), (int)date('t', strtotime($primeiro_dia))));
 
 require_once '../../src/header.php';
 ?>
@@ -51,8 +60,15 @@ require_once '../../src/header.php';
 </div>
 
 <div class="content-area">
-    <div style="text-align:center; margin-bottom: 20px; font-weight:700;">
-        <?php echo $meses[$mes_atual] . ' / ' . $ano_atual; ?>
+    <!-- Navegação de Mês -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+        <a href="?mes=<?php echo $mes_ant; ?>&ano=<?php echo $ano_ant; ?>&aba=<?php echo $aba_ativa; ?>" style="background:var(--surface); padding:8px 12px; border-radius:10px; box-shadow:var(--shadow-sm); border:1px solid var(--border); display:flex; align-items:center; justify-content:center;" title="Mês Anterior">
+            <svg style="width:20px; height:20px; fill:var(--text-main);" viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
+        </a>
+        <strong style="font-size:18px; color:var(--text-main);"><?php echo $meses[$mes_atual] . ' / ' . $ano_atual; ?></strong>
+        <a href="?mes=<?php echo $mes_prox; ?>&ano=<?php echo $ano_prox; ?>&aba=<?php echo $aba_ativa; ?>" style="background:var(--surface); padding:8px 12px; border-radius:10px; box-shadow:var(--shadow-sm); border:1px solid var(--border); display:flex; align-items:center; justify-content:center;" title="Próximo Mês">
+            <svg style="width:20px; height:20px; fill:var(--text-main);" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+        </a>
     </div>
 
     <!-- TABS em CSS Puro (Usando links para recarregar com a variavel aba) -->
@@ -127,9 +143,13 @@ require_once '../../src/header.php';
                                         <select name="categoria_id" class="form-control" required>
                                             <?php 
                                             $cats = $mov['tipo'] == 'entrada' ? $cat_entradas : $cat_saidas;
-                                            foreach($cats as $c): ?>
-                                                <option value="<?php echo $c['id']; ?>" <?php echo $mov['categoria_id'] == $c['id'] ? 'selected' : ''; ?>><?php echo protege($c['nome']); ?></option>
-                                            <?php endforeach; ?>
+                                            if (empty($cats)): ?>
+                                                <option value="">Nenhuma categoria cadastrada</option>
+                                            <?php else:
+                                                foreach($cats as $c): ?>
+                                                    <option value="<?php echo $c['id']; ?>" <?php echo $mov['categoria_id'] == $c['id'] ? 'selected' : ''; ?>><?php echo protege($c['nome']); ?></option>
+                                                <?php endforeach;
+                                            endif; ?>
                                         </select>
                                     </div>
                                 </div>
@@ -171,7 +191,7 @@ require_once '../../src/header.php';
                     </div>
                     <div class="form-group">
                         <label>Data</label>
-                        <input type="date" name="data_movimento" class="form-control" value="<?php echo date('Y-m-d'); ?>" required>
+                        <input type="date" name="data_movimento" class="form-control" value="<?php echo $dia_padrao; ?>" required>
                     </div>
                 </div>
                 <div class="form-row">
@@ -185,9 +205,13 @@ require_once '../../src/header.php';
                     <div class="form-group">
                         <label>Categoria</label>
                         <select name="categoria_id" class="form-control" required>
-                            <?php foreach($cat_entradas as $c): ?>
-                                <option value="<?php echo $c['id']; ?>"><?php echo protege($c['nome']); ?></option>
-                            <?php endforeach; ?>
+                            <?php if (empty($cat_entradas)): ?>
+                                <option value="">Nenhuma categoria cadastrada</option>
+                            <?php else: ?>
+                                <?php foreach($cat_entradas as $c): ?>
+                                    <option value="<?php echo $c['id']; ?>"><?php echo protege($c['nome']); ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </select>
                     </div>
                 </div>
@@ -224,7 +248,7 @@ require_once '../../src/header.php';
                     </div>
                     <div class="form-group">
                         <label>Data</label>
-                        <input type="date" name="data_movimento" class="form-control" value="<?php echo date('Y-m-d'); ?>" required>
+                        <input type="date" name="data_movimento" class="form-control" value="<?php echo $dia_padrao; ?>" required>
                     </div>
                 </div>
                 <div class="form-row">
@@ -238,9 +262,13 @@ require_once '../../src/header.php';
                     <div class="form-group">
                         <label>Categoria</label>
                         <select name="categoria_id" class="form-control" required>
-                            <?php foreach($cat_saidas as $c): ?>
-                                <option value="<?php echo $c['id']; ?>"><?php echo protege($c['nome']); ?></option>
-                            <?php endforeach; ?>
+                            <?php if (empty($cat_saidas)): ?>
+                                <option value="">Nenhuma categoria cadastrada</option>
+                            <?php else: ?>
+                                <?php foreach($cat_saidas as $c): ?>
+                                    <option value="<?php echo $c['id']; ?>"><?php echo protege($c['nome']); ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </select>
                     </div>
                 </div>
@@ -252,7 +280,7 @@ require_once '../../src/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <button type="submit" class="btn" style="background:var(--danger); margin-top:10px;">Salvar Despesa</button>
+                <button type="submit" class="btn" style="margin-top:10px;">Salvar Despesa</button>
             </form>
         </div>
     </div>

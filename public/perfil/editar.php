@@ -15,8 +15,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $q = "UPDATE usuarios SET nome=$1, moeda=$2, mes_fechamento=$3 WHERE id=$4";
         pg_query_params($conexao, $q, array($nome, $moeda, $mes_fechamento, $usuario_id));
         $_SESSION['usuario_nome'] = $nome;
+        header('Location: /perfil/index.php?sucesso=' . urlencode('Perfil atualizado com sucesso!'));
+    } else {
+        header('Location: /perfil/index.php?erro=' . urlencode('Preencha o nome.'));
     }
-    header('Location: /perfil/index.php?sucesso=1');
     exit;
 } else {
     header('Location: /perfil/index.php');

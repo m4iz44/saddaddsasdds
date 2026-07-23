@@ -10,8 +10,6 @@ if (isset($_SESSION['usuario_id'])) {
     exit;
 }
 
-$erro = '';
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome = $_POST['nome'] ?? '';
     $email = $_POST['email'] ?? '';
@@ -19,15 +17,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $senha2 = $_POST['senha2'] ?? '';
 
     if (empty($nome) || empty($email) || empty($senha) || empty($senha2)) {
-        $erro = "Preencha todos os campos.";
+        header('Location: cadastro.php?erro=' . urlencode('Preencha todos os campos.'));
+        exit;
     } elseif ($senha !== $senha2) {
-        $erro = "As senhas não coincidem.";
+        header('Location: cadastro.php?erro=' . urlencode('As senhas não coincidem.'));
+        exit;
     } else {
         $q_check = "SELECT id FROM usuarios WHERE email = $1";
         $r_check = pg_query_params($conexao, $q_check, array($email));
         
         if (pg_num_rows($r_check) > 0) {
-            $erro = "Este e-mail já está em uso.";
+            header('Location: cadastro.php?erro=' . urlencode('Este e-mail já está em uso.'));
+            exit;
         } else {
             $hash = password_hash($senha, PASSWORD_DEFAULT);
             $q_ins = "INSERT INTO usuarios (nome, email, senha) VALUES ($1, $2, $3) RETURNING id";
@@ -43,21 +44,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Inserir Categorias Padrão
                 $cats = [
                     ['Salário', 'entrada'],
-                    ['Investimentos', 'entrada'],
+                    ['Outras Receitas', 'entrada'],
                     ['Alimentação', 'saida'],
                     ['Moradia', 'saida'],
                     ['Transporte', 'saida'],
-                    ['Lazer', 'saida']
+                    ['Lazer', 'saida'],
+                    ['Outras Despesas', 'saida']
                 ];
                 foreach ($cats as $cat) {
                     $q_cat = "INSERT INTO categorias (usuario_id, nome, tipo) VALUES ($1, $2, $3)";
                     pg_query_params($conexao, $q_cat, array($novo_usuario_id, $cat[0], $cat[1]));
                 }
                 
-                header('Location: login.php?sucesso=1');
+                header('Location: login.php?sucesso=' . urlencode('Cadastro realizado com sucesso! Faça login.'));
                 exit;
             } else {
-                $erro = "Erro ao cadastrar. Tente novamente.";
+                header('Location: cadastro.php?erro=' . urlencode('Erro ao cadastrar. Tente novamente.'));
+                exit;
             }
         }
     }
@@ -72,12 +75,6 @@ require_once '../src/header.php';
     </div>
 
     <h2 style="font-size: 20px; color: var(--text-muted); margin-bottom: 30px;">Crie sua conta!</h2>
-
-    <?php if ($erro): ?>
-        <div style="background: var(--danger); color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; font-weight: bold;">
-            <?php echo $erro; ?>
-        </div>
-    <?php endif; ?>
 
     <form method="POST" action="cadastro.php">
         <div class="form-group">

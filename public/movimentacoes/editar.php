@@ -15,11 +15,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $categoria_id = $_POST['categoria_id'] ?? 0;
 
     if (!$id || empty($descricao) || !$categoria_id) {
-        header('Location: /movimentacoes/listar.php?erro=Campos invalidos');
+        header('Location: /movimentacoes/listar.php?erro=' . urlencode('Preencha os campos obrigatórios.'));
         exit;
     }
 
-    // Busca a original para reverter saldo se necessario (simplificado)
     $q_orig = "SELECT * FROM movimentacoes WHERE id = $1 AND usuario_id = $2";
     $r_orig = pg_query_params($conexao, $q_orig, array($id, $usuario_id));
     $mov = pg_fetch_assoc($r_orig);
@@ -32,18 +31,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  WHERE id=$6 AND usuario_id=$7";
         $r_up = pg_query_params($conexao, $q_up, array($descricao, $valor, $data_movimento, $status, $categoria_id, $id, $usuario_id));
         
-        // Reversão de saldo nas contas (caso tenha mudado de valor/status). 
-        // Para um MVP sem JS, o saldo dinâmico no Dashboard não precisa disso, 
-        // mas para manter compatibilidade com "conta.saldo", teríamos que desfazer a transação velha e refazer.
-        // Como o foco agora é a Dashboard dinâmica, a alteração no `movimentacoes` já afeta a Dashboard.
         if ($r_up) {
             pg_query($conexao, "COMMIT");
+            $timestamp = strtotime($data_movimento);
+            $mes = (int)date('m', $timestamp);
+            $ano = (int)date('Y', $timestamp);
+            $aba = $mov['tipo'] === 'entrada' ? 'receitas' : 'despesas';
+            header("Location: /movimentacoes/listar.php?mes={$mes}&ano={$ano}&aba={$aba}&sucesso=" . urlencode('Transação atualizada com sucesso!'));
+            exit;
         } else {
             pg_query($conexao, "ROLLBACK");
         }
     }
     
-    header('Location: /movimentacoes/listar.php?sucesso=1');
+    header('Location: /movimentacoes/listar.php?erro=' . urlencode('Erro ao atualizar transação.'));
     exit;
 } else {
     header('Location: /movimentacoes/listar.php');

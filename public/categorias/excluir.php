@@ -13,9 +13,9 @@ if (isset($_GET['id'])) {
     $result = @pg_query_params($conexao, $query, array($id, $usuario_id));
 
     if ($result && pg_affected_rows($result) > 0) {
-        header('Location: /categorias/listar.php?sucesso=1');
+        header('Location: /categorias/listar.php?sucesso=' . urlencode('Categoria excluída com sucesso!'));
     } else {
-        header('Location: /categorias/listar.php?erro=1');
+        header('Location: /categorias/listar.php?erro=' . urlencode('Não foi possível excluir a categoria. Verifique se existem movimentações associadas a ela.'));
     }
     exit;
 }

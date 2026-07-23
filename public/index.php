@@ -15,21 +15,19 @@ $primeiro_dia = sprintf('%04d-%02d-01', $ano_atual, $mes_atual);
 $ultimo_dia = date('Y-m-t', strtotime($primeiro_dia));
 $hoje = date('Y-m-d');
 
-// Saldo Inicial de todas as contas (Saldo cadastrado na criação da conta)
+// Saldo em Conta acumulado até o final do mês ativo (Saldo cadastrado + Entradas e Saídas pagas acumuladas)
 $q_saldo_inicial = "SELECT COALESCE(SUM(saldo), 0) as total FROM contas WHERE usuario_id = $1";
 $r_saldo_inicial = pg_query_params($conexao, $q_saldo_inicial, array($usuario_id));
 $saldo_inicial_contas = (float) pg_fetch_assoc($r_saldo_inicial)['total'];
 
-// Receitas e Despesas ATÉ hoje (para o Saldo Atual)
-// Inclui tudo de meses anteriores + o que já passou do mês atual, apenas se estiver "pago"
-$q_saldo_hoje = "SELECT 
+$q_saldo_acumulado = "SELECT 
     COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE 0 END), 0) as entradas,
     COALESCE(SUM(CASE WHEN tipo = 'saida' THEN valor ELSE 0 END), 0) as saidas
     FROM movimentacoes 
     WHERE usuario_id = $1 AND data_movimento <= $2 AND status = 'pago'";
-$r_saldo_hoje = pg_query_params($conexao, $q_saldo_hoje, array($usuario_id, $hoje));
-$row_saldo_hoje = pg_fetch_assoc($r_saldo_hoje);
-$saldo_hoje = $saldo_inicial_contas + $row_saldo_hoje['entradas'] - $row_saldo_hoje['saidas'];
+$r_saldo_acumulado = pg_query_params($conexao, $q_saldo_acumulado, array($usuario_id, $ultimo_dia));
+$row_saldo_acumulado = pg_fetch_assoc($r_saldo_acumulado);
+$saldo_em_conta = $saldo_inicial_contas + (float)$row_saldo_acumulado['entradas'] - (float)$row_saldo_acumulado['saidas'];
 
 // Receitas e Despesas do Mês Ativo (Visão Geral do Mês)
 // Aqui incluímos pagas e pendentes que ocorrem no mês escolhido
@@ -72,9 +70,6 @@ require_once '../src/header.php';
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91 2.95.73 4.18 1.9 4.18 3.91-.01 1.83-1.38 2.83-3.12 3.16z"/></svg>
         Financinhas
     </h1>
-    <a href="/logout.php">
-        <svg style="width:24px; fill:var(--danger);" viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
-    </a>
 </div>
 
 <div class="content-area">
@@ -86,11 +81,11 @@ require_once '../src/header.php';
         <a href="?mes=<?php echo $mes_prox; ?>&ano=<?php echo $ano_prox; ?>" style="background:var(--surface); padding:8px; border-radius:10px; box-shadow:var(--shadow-sm);"><svg style="width:20px;fill:var(--text-main);" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg></a>
     </div>
 
-    <!-- Saldo de Hoje -->
+    <!-- Saldo em Conta -->
     <div class="card balance-card" style="text-align:center;">
-        <div class="card-header">Saldo de Hoje (Em conta)</div>
-        <div class="card-value"><?php echo formataReal($saldo_hoje); ?></div>
-        <div style="font-size:12px; margin-top:5px; opacity:0.8;">Atualizado até <?php echo date('d/m/Y'); ?></div>
+        <div class="card-header">SALDO EM CONTA</div>
+        <div class="card-value"><?php echo formataReal($saldo_em_conta); ?></div>
+        <div style="font-size:12px; margin-top:5px; opacity:0.8;">Acumulado até <?php echo date('d/m/Y', strtotime($ultimo_dia)); ?></div>
     </div>
 
     <!-- Resumo do Mês -->
@@ -114,7 +109,7 @@ require_once '../src/header.php';
 
     <!-- Gráfico Simples de Saldo CSS -->
     <div class="card">
-        <h3 style="font-size:16px; margin-bottom:15px;">Variação Prevista (Receitas vs Despesas)</h3>
+        <h3 style="font-size:16px; margin-bottom:15px;">Receitas vs Despesas</h3>
         <div style="display:flex; height:100px; align-items:flex-end; gap:5px; border-bottom: 2px solid var(--border); padding-bottom:5px;">
             <?php 
             $max_val = max($receitas_mes, $despesas_mes, 1); 

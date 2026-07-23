@@ -16,36 +16,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status = $_POST['status'] ?? 'pago';
 
     if (empty($descricao) || empty($tipo) || !$conta_id || !$categoria_id) {
-        header('Location: /movimentacoes/listar.php?erro=Preencha todos os campos');
+        header('Location: /movimentacoes/listar.php?erro=' . urlencode('Preencha todos os campos obrigatórios.'));
         exit;
     }
 
     pg_query($conexao, "BEGIN");
 
-    // 1. Inserir movimentação com status
+    // Inserir movimentação
     $query_mov = "INSERT INTO movimentacoes (usuario_id, conta_id, categoria_id, descricao, valor, tipo, data_movimento, status) 
                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)";
     $result_mov = pg_query_params($conexao, $query_mov, array($usuario_id, $conta_id, $categoria_id, $descricao, $valor, $tipo, $data_movimento, $status));
 
-    // 2. O saldo da conta será atualizado na "Dashboard" virtualmente baseada nas transações pagas.
-    // O projeto original modificava a tabela `contas`. Se mantivermos isso, só alteramos se estiver pago.
-    // Como a nova especificação usa "Saldo Projetado (considera datas)" somando movimentações on the fly na dashboard,
-    // o campo "saldo" da tabela contas passa a representar o saldo inicial. 
-    // Portanto, é melhor deixarmos o `saldo` em paz e usarmos apenas a soma das transações na Dashboard.
-    // Mas, para não quebrar outras partes, vamos continuar atualizando se estiver "pago".
-    $result_saldo = true;
-    if ($status === 'pago') {
-        $operador = $tipo === 'entrada' ? '+' : '-';
-        $query_saldo = "UPDATE contas SET saldo = saldo $operador $1 WHERE id = $2 AND usuario_id = $3";
-        $result_saldo = pg_query_params($conexao, $query_saldo, array($valor, $conta_id, $usuario_id));
-    }
-
-    if ($result_mov && $result_saldo) {
+    if ($result_mov) {
         pg_query($conexao, "COMMIT");
-        header('Location: /movimentacoes/listar.php?sucesso=1');
+        $timestamp = strtotime($data_movimento);
+        $mes = (int)date('m', $timestamp);
+        $ano = (int)date('Y', $timestamp);
+        $aba = $tipo === 'entrada' ? 'receitas' : 'despesas';
+        header("Location: /movimentacoes/listar.php?mes={$mes}&ano={$ano}&aba={$aba}&sucesso=" . urlencode('Transação registrada com sucesso!'));
     } else {
         pg_query($conexao, "ROLLBACK");
-        header('Location: /movimentacoes/listar.php?erro=Erro ao salvar');
+        header('Location: /movimentacoes/listar.php?erro=' . urlencode('Erro ao salvar transação.'));
     }
     exit;
 } else {

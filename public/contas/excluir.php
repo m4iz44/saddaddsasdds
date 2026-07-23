@@ -13,6 +13,5 @@ if ($conta_id) {
     pg_query_params($conexao, $query, array($conta_id, $usuario_id));
 }
 
-header('Location: /contas/listar.php?sucesso=1');
+header('Location: /contas/listar.php?sucesso=' . urlencode('Conta excluída com sucesso!'));
 exit;
-?>
